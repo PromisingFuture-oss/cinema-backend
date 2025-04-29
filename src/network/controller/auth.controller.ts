@@ -36,7 +36,7 @@ class AuthController extends Controller {
                     name,
                     email,
                     password: hashedPassword,
-                    role: "employee"
+                    role: "user"
                 }
             })
             response.status(200).json({
@@ -51,35 +51,37 @@ class AuthController extends Controller {
         }
     };
     public Login = async (request: Request, response: Response) => {
+        const { email, password } = request.body;
+
         try {
-            const user = await prisma.users.findFirst({
-                where: {
-                    email: request.body.email
-                }
+            const user = await prisma.users.findUnique({
+                where: { email: email }
             });
 
             if (!user) {
-                response.status(401).json({ error: 'Invalid email or password' });
-                return;
-            }
-            const isPasswordValid = bcrypt.comparePassword(request.body.password, user.password);
-            if (!isPasswordValid) {
-                response.status(401).json({ error: 'Invalid email or password' });
+                response.status(404).json({ mesage: 'User does not exist.' });
                 return;
             }
 
-            response.json({ user: user});
+            const isPasswordValid = bcrypt.comparePassword(password, user.password);
+            if (!isPasswordValid) {
+                response.status(404).json({ message: 'Invalid credentials' });
+                return;
+            }
+
+            response.json({
+                success: true,
+                user: {
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role
+                }
+            });
         }catch(error) {
+            console.error(error);
             response.status(500).json({ error: 'Login failed' });
         }
-    };
-
-    public SessionToken = (request: Request, response: Response) => {
-
-    };
-
-    public SessionLogout = (request: Request, response: Response) => {
-
     };
 }
 
